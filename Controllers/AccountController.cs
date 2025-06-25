@@ -66,12 +66,12 @@ namespace SessionManagementDemo.Controllers
 
         // POST: Login
         [HttpPost]
+        [AllowAnonymous]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
             if (!ModelState.IsValid)
                 return View(model);
 
-            // Hash the input password (same base64 logic used during registration)
             var hashedPassword = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(model.Password));
 
             var user = await _context.Users
@@ -83,21 +83,28 @@ namespace SessionManagementDemo.Controllers
                 return View(model);
             }
 
-            // Create claims
+            // Claims
             var claims = new List<Claim>
             {
-               new Claim(ClaimTypes.Name, user.Username),
-               new Claim(ClaimTypes.Email, user.Email)
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Email, user.Email)
             };
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);
 
-            // Sign in
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+            // ✅ Step 3: Set custom expiration properties
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = true, // persists across browser sessions
+                ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(20) // custom expiration (e.g., 20 mins)
+            };
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, authProperties);
 
             return RedirectToAction("Index", "Home");
         }
+
 
 
 

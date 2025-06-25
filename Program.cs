@@ -14,9 +14,25 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
+        // a) Timeout after inactivity
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(15); // your inactivity window
+
+        // c) Set to false to enforce absolute expiry
+        options.SlidingExpiration = false;
+
+        // e) Customize cookie
+        options.Cookie.Name = "SessionAuthCookie";
+        options.Cookie.HttpOnly = true;
+
+        // d) Session cookie only (expires on browser close)
+        options.Cookie.IsEssential = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+        // b) Login and Access Denied paths
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/Login";
     });
+
 
 var app = builder.Build();
 
