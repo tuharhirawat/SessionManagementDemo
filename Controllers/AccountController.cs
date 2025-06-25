@@ -1,0 +1,100 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using SessionManagementDemo.Models;
+
+namespace SessionManagementDemo.Controllers
+{
+    public class AccountController : Controller
+    {
+        private readonly ApplicationDbContext _context;
+        public AccountController(ApplicationDbContext context)
+        {
+            _context = context;
+        }
+
+
+        // GET: /account/Register
+        public IActionResult Register() => View();
+
+
+
+        // POST: /Account/Register
+        [HttpPost]
+        public async Task<IActionResult> Register(User model)
+        {
+            if (ModelState.IsValid)
+            {
+                // Check if user already exists
+                if (await _context.Users.AnyAsync(u => u.Username == model.Username || u.Email == model.Email))
+                {
+                    ModelState.AddModelError("", "Username or Email already exists.");
+                    return View(model);
+                }
+
+                //Hash password
+                model.PasswordHash = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(model.PasswordHash));
+
+                _context.Users.Add(model); ;
+                await _context.SaveChangesAsync();
+
+                return RedirectToAction("Login");
+            }
+            return View(model);
+        }
+
+
+        // GET: /account/login
+        public IActionResult Login() => View();
+
+
+        // POST: Login
+        [HttpPost]
+        public async Task<IActionResult> Login(LoginViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            // Hash the input password (same base64 logic used during registration)
+            var hashedPassword = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(model.Password));
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == model.Email && u.PasswordHash == hashedPassword);
+
+            if (user == null)
+            {
+                ModelState.AddModelError("", "Invalid email or password.");
+                return View(model);
+            }
+
+            // Create claims
+            var claims = new List<Claim>
+            {
+               new Claim(ClaimTypes.Name, user.Username),
+               new Claim(ClaimTypes.Email, user.Email)
+            };
+
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+
+            // Sign in
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
+
+            return RedirectToAction("Index", "Home");
+        }
+
+
+
+        // GET: /Account/Logout
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("Login");
+        }
+    }
+}
+
+
