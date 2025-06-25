@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SessionManagementDemo.Models;
 
@@ -18,6 +19,8 @@ namespace SessionManagementDemo.Controllers
             return View();
         }
 
+
+        [Authorize]
         public IActionResult Privacy()
         {
             return View();

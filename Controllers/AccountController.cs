@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using SessionManagementDemo.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SessionManagementDemo.Controllers
 {
@@ -18,7 +19,13 @@ namespace SessionManagementDemo.Controllers
 
 
         // GET: /account/Register
-        public IActionResult Register() => View();
+        public IActionResult Register()
+        {
+            if (User.Identity.IsAuthenticated)
+                return RedirectToAction("Index", "Home");
+
+            return View();
+        }
 
 
 
@@ -48,7 +55,13 @@ namespace SessionManagementDemo.Controllers
 
 
         // GET: /account/login
-        public IActionResult Login() => View();
+        public IActionResult Login()
+        {
+            if (User.Identity.IsAuthenticated)
+                return RedirectToAction("Index", "Home");
+
+            return View();
+        }
 
 
         // POST: Login
@@ -89,6 +102,7 @@ namespace SessionManagementDemo.Controllers
 
 
         // GET: /Account/Logout
+        [Authorize]
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
